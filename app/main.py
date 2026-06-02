@@ -193,6 +193,24 @@ async def eliminar_factura(id: int):
 #CRUD TRANSACCIONES
 # ///////////////////////
 
+
+# ///////////////////////
+#VER TRANSACCIONES
+# ///////////////////////
+
+@app.get("/TRANSACCIONES")
+def listar_TRANSACCIONES():
+
+    if len(lista_transacciones) == 0:
+        return {"mensaje": "No hay transacciones"}
+
+    else:
+        return {"transacciones": lista_transacciones}
+
+# ///////////////////////
+#CREAR TRANSACCIONES 
+# ///////////////////////
+
 @app.post("/transacciones/{factura_id}")
 async def crear_transaccion(
     factura_id: int, datos_transaccion: TransaccionesCrear, cliente_id: int
@@ -304,3 +322,63 @@ async def crear_transaccion(
             "mensaje": f"Factura no existe con el id: {factura_id}, pero se creo la nueva factura",
             "facturas": transaccion_val,
         }
+    
+# Buscamos una transacción específica usando su id.
+
+@app.get("/transacciones/{id}", response_model=Transacciones)
+async def obtener_transaccion(id: int):
+
+    for transaccion in lista_transacciones:
+        if transaccion.id == id:
+            return transaccion
+
+    raise HTTPException(
+        status_code=404,
+        detail="Transacción no encontrada"
+    )
+
+# Permite actualizar los datos de una transacción existente.
+@app.put("/transacciones/{id}", response_model=Transacciones)
+async def editar_transaccion(
+    id: int,
+    datos_transaccion: TransaccionesEditar
+):
+
+    for i, transaccion in enumerate(lista_transacciones):
+
+        if transaccion.id == id:
+
+            transaccion_actualizada = Transacciones.model_validate(
+                datos_transaccion.model_dump()
+            )
+
+            transaccion_actualizada.id = id
+            transaccion_actualizada.factura_id = transaccion.factura_id
+
+            lista_transacciones[i] = transaccion_actualizada
+
+            return transaccion_actualizada
+
+    raise HTTPException(
+        status_code=404,
+        detail="Transacción no encontrada"
+    )
+
+# Elimina una transacción de la lista usando su id.
+@app.delete("/transacciones/{id}")
+async def eliminar_transaccion(id: int):
+
+    for transaccion in lista_transacciones:
+
+        if transaccion.id == id:
+
+            lista_transacciones.remove(transaccion)
+
+            return {
+                "mensaje": f"Transacción {id} eliminada correctamente"
+            }
+
+    raise HTTPException(
+        status_code=404,
+        detail="Transacción no encontrada"
+    )

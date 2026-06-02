@@ -1,0 +1,6 @@
+# DATOS DEL APRENDIZ
+
+NOMBRE: Janer Duvan Rivas Rodriguez
+FICHA: 3407186
+
+#

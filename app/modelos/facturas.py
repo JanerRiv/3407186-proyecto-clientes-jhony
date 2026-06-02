@@ -9,19 +9,16 @@ class FacturaBase(BaseModel):
     fecha: str
     cliente: Cliente
     transacciones: list[Transacciones] = []
-# ==========================
-    @computed_field #
+
     @property
     def valor_total(self) -> float:
-        # consultar el id actual y poder filtra trasacciones
-        factura_id_actual = getattr(self, "id", None)
-        if factura_id_actual is None or not self.transacciones:
+        if not self.transacciones:
             return 0.0
+
         return sum(
-            t.cantidad * t.vr_unitario
-            for t in self.transacciones
-            if t.factura_id == factura_id_actual
-        )
+        t.cantidad * t.vr_unitario
+        for t in self.transacciones
+    )
 
 
 class FacturaCrear(FacturaBase):

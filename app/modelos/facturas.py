@@ -10,6 +10,7 @@ class FacturaBase(BaseModel):
     cliente: Cliente
     transacciones: list[Transacciones] = []
 
+    @computed_field
     @property
     def valor_total(self) -> float:
         if not self.transacciones:

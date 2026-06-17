@@ -1,4 +1,4 @@
-from ..modelos.transacciones import *
+from app.modelos.transacciones import *
 from fastapi import APIRouter
 from fastapi import HTTPException, FastAPI
 

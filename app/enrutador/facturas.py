@@ -3,9 +3,9 @@ from fastapi import APIRouter
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 
-from modelos.facturas import Factura,FacturaCrear,FacturaEditar
+from app.modelos.facturas import Factura,FacturaCrear,FacturaEditar
 
-from conexion_bd import lista_facturas, lista_clientes
+
 
 router = APIRouter(
     prefix="/facturas",

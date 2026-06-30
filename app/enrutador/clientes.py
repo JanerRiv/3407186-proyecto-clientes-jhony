@@ -1,5 +1,5 @@
 from fastapi import APIRouter # APIRouter es una herramienta de FastAPI que permite organizar los endpoints en archivos separados.
-
+from fastapi import HTTPException, FastAPI, status
 from app.modelos.clientes import Cliente, ClienteCrear, ClienteEditar
 from app.conexion_bd import Sesion_dependencia
 from sqlmodel import select

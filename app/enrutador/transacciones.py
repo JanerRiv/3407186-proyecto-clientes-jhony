@@ -31,10 +31,18 @@ def listar_transacciones(sesion: Sesion_dependencia):
     #forma corta
     return sesion.exec(select(Transacciones)).all()
 
-@router.get("/{id}")
-async def obtener_transaccion(id: int):
-    pass
+# Buscamos una transacción específica usando su id.
 
+@router.get("/{id}", response_model=Transacciones)
+async def obtener_transaccion(id: int, sesion: Sesion_dependencia):
+    transaccion_bd = sesion.get(Transacciones, id)
+ 
+    if not transaccion_bd:
+        raise HTTPException(
+            status_code=404,
+            detail="Transacción no encontrada"
+        )
+    return transaccion_bd
 
 # ///////////////////////
 #CREAR TRANSACCIONES 
@@ -68,22 +76,7 @@ async def crear_transaccion(factura_id: int, datos_transaccion: TransaccionesCre
         "mensaje": "Transacción creada",
         "transaccion": transaccion_val
     }
-
   
-# Buscamos una transacción específica usando su id.
-
-@router.get("/transacciones/{id}", response_model=Transacciones)
-async def obtener_transaccion(id: int):
-
-    for transaccion in lista_transacciones:
-        if transaccion.id == id:
-            return transaccion
-
-    raise HTTPException(
-        status_code=404,
-        detail="Transacción no encontrada"
-    )
-
 # Permite actualizar los datos de una transacción existente.
 @router.put("/transacciones/{id}", response_model=Transacciones)
 async def editar_transaccion(

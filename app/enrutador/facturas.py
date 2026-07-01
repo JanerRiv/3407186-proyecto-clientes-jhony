@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from app.modelos.clientes import Cliente
-from app.modelos.facturas import Factura,FacturaCrear,FacturaEditar
+from app.modelos.clientes import Cliente 
+from app.modelos.facturas import Factura,FacturaCrear,FacturaEditar, Facturaleer
 
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
@@ -21,7 +21,7 @@ router = APIRouter(
 #///////////////////////
         # ver que faturas se encuentran
 # ///////////////////////
-@router.get("/")
+@router.get("/facturas", response_model=list[Facturaleer])
 async def listar_facturas(sesion: Sesion_dependencia ):
     consulta = select(Factura)
     lista_facturas =sesion.exec(consulta).all()

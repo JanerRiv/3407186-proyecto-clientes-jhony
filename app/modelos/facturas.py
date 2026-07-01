@@ -6,7 +6,7 @@ from datetime import datetime
 
 class FacturaBase(SQLModel):
     # atributos
-    fecha: str = Field (default= datetime.now()) 
+    fecha: datetime = Field(default_factory=datetime.now) 
     #cliente: Cliente
     #transacciones: list[Transacciones] = []
 
@@ -14,10 +14,15 @@ class FacturaBase(SQLModel):
     @property
     def valor_total(self) -> float:
         total_factura = 0.0
-        if self.transacciones == None:
+
+        transacciones = getattr(self, "transacciones", None)
+
+        if not transacciones:
             return total_factura
-        for transaccion in self.transacciones:
+
+        for transaccion in transacciones:
             total_factura += transaccion.vr_unitario * transaccion.cantidad
+
         return total_factura
 
 class FacturaCrear(FacturaBase):

@@ -22,7 +22,7 @@ Por último desarrollé la parte de transacciones, que son los productos o servi
 La verdad, al principio me enredé un poco con algunas cosas, especialmente cuando tocó relacionar clientes, facturas y transacciones. Sin embargo, a medida que fui haciendo pruebas, revisando errores y repitiendo varias veces el proceso, fui entendiendo mejor cómo funcionaba todo. Muchas de las funciones que agregué, como buscar facturas por ID o consultar las facturas de un cliente específico me acostubre a ellas por el hecho de repetirlas
 
 
-Segundo Trabajo del Project_Clients
+## Segundo Trabajo del Project_Clients
 
 1. Se reorganizó la estructura del proyecto creando el archivo conexion_bd.py, donde se almacenan las listas de clientes, facturas y transacciones para simular una base de datos en memoria.
 
@@ -40,3 +40,16 @@ Segundo Trabajo del Project_Clients
 
 8. Se verificó que la información se mantuviera correctamente relacionada entre los diferentes módulos del sistema, garantizando la integridad de los datos durante las operaciones realizadas.
 
+## Tercer Trabajo del Project_Clients
+
+Para este trabajo dejé atrás las listas en memoria (lista_clientes, lista_facturas, lista_transacciones) y pasé a guardar todo en una base de datos real usando SQLModel. Al principio me costó entender bien la diferencia entre lo que es una tabla de verdad y lo que es solo una relación "virtual" de Python, pero con pruebas y algunos errores en el camino le fui agarrando el hilo.
+
+Los modelos Cliente, Factura y Transacciones ahora sí crean tablas reales en la base de datos (usando table=True), mientras que los modelos que solo sirven para crear o editar datos no la necesitan, porque son más como formularios de entrada.
+
+Para conectar las tablas usé llaves foráneas: la factura guarda el id del cliente al que pertenece, y la transacción guarda el id de la factura a la que pertenece. Esa parte sí queda guardada de verdad en la base de datos.
+
+Aparte de eso, configuré relaciones virtuales con Relationship, que no crean ninguna columna nueva pero me dejan navegar entre los datos de forma muy cómoda, por ejemplo poder escribir factura.transacciones o transaccion.factura sin tener que armar una consulta cada vez.
+
+También creé modelos "Leer" para cada uno de los tres (cliente, factura, transacción), que son los que se usan para mostrarle la información al usuario sin exponer cosas que no hacen falta. Y sobre la factura hice un modelo un poco más completo, FacturaLeerCompuesta, que además de los datos normales muestra la lista de transacciones asociadas y calcula el valor total real de la factura sumando cantidad por valor unitario de cada transacción, en vez de dejarlo en un número fijo como estaba antes.
+
+Por último tuve que corregir algunos errores tontos que se me habían pasado, como un campo que decía que era texto pero podía quedar vacío, o una relación que debía ser un solo objeto y yo la había dejado como una lista. Cosas pequeñas, pero que hacían que la API fallara al crear o consultar datos.

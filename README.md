@@ -39,3 +39,4 @@ Segundo Trabajo del Project_Clients
 7. Se realizaron pruebas de creación, consulta, edición y eliminación de clientes, facturas y transacciones para verificar el correcto funcionamiento de los procesos CRUD implementados.
 
 8. Se verificó que la información se mantuviera correctamente relacionada entre los diferentes módulos del sistema, garantizando la integridad de los datos durante las operaciones realizadas.
+

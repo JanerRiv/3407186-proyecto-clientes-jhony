@@ -1,204 +1,126 @@
-from modelos.transacciones import *
-from fastapi import APIRouter
-from fastapi import HTTPException, FastAPI
-from conexion_bd import lista_facturas, lista_clientes, lista_transacciones
+from fastapi import APIRouter, HTTPException, status
+from sqlmodel import select
 
-router = APIRouter(       
-    prefix="/transacciones",  
-    tags=["Transacciones"]    
+from app.modelos.transacciones import (
+    Transacciones,
+    TransaccionesCrear,
+    TransaccionesEditar
+)
+from app.modelos.facturas import Factura
+from app.conexion_bd import Sesion_dependencia
+
+router = APIRouter(
+    prefix="/transacciones",
+    tags=["Transacciones"]
 )
 
+# ===================================
+# CRUD TRANSACCIONES
+# ===================================
 
-# ///////////////////////
-#CRUD TRANSACCIONES
-# ///////////////////////
+# Listar todas las transacciones
+@router.get("/", response_model=list[Transacciones])
+async def listar_transacciones(sesion: Sesion_dependencia):
+
+    lista_transacciones = sesion.exec(select(Transacciones)).all()
+
+    return lista_transacciones
 
 
-# ///////////////////////
-#VER TRANSACCIONES
-# ///////////////////////
+# Buscar una transacción por ID
+@router.get("/{id}", response_model=Transacciones)
+async def listar_transaccion_id(id: int, sesion: Sesion_dependencia):
 
-@router.get("/TRANSACCIONES")
-def listar_TRANSACCIONES():
+    transaccion_bd = sesion.get(Transacciones, id)
 
-    if len(lista_transacciones) == 0:
-        return {"mensaje": "No hay transacciones"}
+    if not transaccion_bd:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La transacción con ID {id} no existe."
+        )
 
-    else:
-        return {"transacciones": lista_transacciones}
+    return transaccion_bd
 
-# ///////////////////////
-#CREAR TRANSACCIONES 
-# ///////////////////////
 
-@router.post("/transacciones/{factura_id}")
+# Crear una transacción
+@router.post("/{factura_id}")
 async def crear_transaccion(
-    factura_id: int, datos_transaccion: TransaccionesCrear, cliente_id: int
+    factura_id: int,
+    datos_transaccion: TransaccionesCrear,
+    sesion: Sesion_dependencia
 ):
 
-    # Buscamos el cliente para confirmar que está registrado antes de crear la transacción.
-    cliente_encontrado = None
+    factura_bd = sesion.get(Factura, factura_id)
 
-    for c in lista_clientes:
-        if c.id == cliente_id:
-            cliente_encontrado = c
-            break
-
-    # Si el cliente no existe, mostramos un mensaje indicando que primero debe registrarse.
-    if not cliente_encontrado:
+    if not factura_bd:
         raise HTTPException(
-            status_code=400,
-            detail=f"Error 400: No existe un cliente con ese id: {cliente_id}, debes crear el cliente.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La factura con ID {factura_id} no existe."
         )
 
-    # Buscamos si ya existe una factura con el id recibido.
-    factura_encontrada = None
+    transaccion_dict = datos_transaccion.model_dump()
+    transaccion_dict["factura_id"] = factura_id
 
-    for f in lista_facturas:
-        if f.id == factura_id:
-            factura_encontrada = f
-            break
+    transaccion_validada = Transacciones.model_validate(transaccion_dict)
 
-    # Si encontramos la factura continuamos con el proceso.
-    if factura_encontrada:
+    sesion.add(transaccion_validada)
+    sesion.commit()
+    sesion.refresh(transaccion_validada)
 
-        # Verificamos que la factura realmente pertenezca al cliente indicado.
-        if factura_encontrada.cliente.id == cliente_id:
+    return {
+        "mensaje": "Transacción creada correctamente.",
+        "transaccion": transaccion_validada
+    }
 
-            # Validamos los datos recibidos y creamos la nueva transacción.
-            transaccion_val = Transacciones.model_validate(
-                datos_transaccion.model_dump()
-            )
 
-            # Asignamos un id consecutivo a la transacción.
-            transaccion_val.id = len(lista_transacciones) + 1
-
-            # Relacionamos la transacción con la factura correspondiente.
-            transaccion_val.factura_id = factura_id
-
-            # Guardamos la transacción en la lista general.
-            lista_transacciones.append(transaccion_val)
-
-            # También agregamos la transacción dentro de la factura encontrada.
-            factura_encontrada.transacciones.append(transaccion_val)
-
-            mensaje = f"Transaccion agregada a factura {factura_encontrada.id}"
-            factura_final = factura_encontrada
-
-            return {
-                "mensaje": mensaje,
-                "factura": factura_final
-            }
-
-        # Si la factura existe pero pertenece a otro cliente, informamos la situación.
-        else:
-
-            mensaje = (
-                f"Se encontro la factura de id: {factura_id}, "
-                f"pero es de otro cliente id: {cliente_id}"
-            )
-
-            factura_final = factura_encontrada
-
-            return {
-                "mensaje": mensaje,
-                "factura encontrada": factura_final
-            }
-
-    '''# Si no existe la factura, creamos una nueva junto con la transacción.
-    else:
-
-        # Validamos los datos de la transacción.
-        transaccion_val = Transacciones.model_validate(
-            datos_transaccion.model_dump()
-        )
-
-        # Generamos el id de la transacción.
-        transaccion_val.id = len(lista_transacciones) + 1
-
-        # Relacionamos la transacción con la nueva factura que se va a crear.
-        transaccion_val.factura_id = len(lista_facturas) + 1
-
-        # Creamos la factura con el cliente, la fecha actual y la transacción registrada.
-        factura = FacturaCrear(
-            cliente=cliente_encontrado,
-            fecha=str(datetime.now()),
-            transacciones=[transaccion_val],
-        )
-
-        # Convertimos los datos al modelo Factura.
-        factura_val = Factura.model_validate(factura.model_dump())
-
-        # Asignamos un id a la nueva factura.
-        factura_val.id = len(lista_facturas) + 1
-
-        # Guardamos la factura en la lista de facturas.
-        lista_facturas.append(factura_val)
-
-        # Guardamos también la transacción en la lista general.
-        lista_transacciones.append(transaccion_val)
-
-        return {
-            "mensaje": f"Factura no existe con el id: {factura_id}, pero se creo la nueva factura",
-            "facturas": transaccion_val,
-        }'''
-    
-# Buscamos una transacción específica usando su id.
-
-@router.get("/transacciones/{id}", response_model=Transacciones)
-async def obtener_transaccion(id: int):
-
-    for transaccion in lista_transacciones:
-        if transaccion.id == id:
-            return transaccion
-
-    raise HTTPException(
-        status_code=404,
-        detail="Transacción no encontrada"
-    )
-
-# Permite actualizar los datos de una transacción existente.
-@router.put("/transacciones/{id}", response_model=Transacciones)
+# Editar una transacción
+@router.patch("/{id}")
 async def editar_transaccion(
     id: int,
-    datos_transaccion: TransaccionesEditar
+    datos_transaccion: TransaccionesEditar,
+    sesion: Sesion_dependencia
 ):
 
-    for i, transaccion in enumerate(lista_transacciones):
+    transaccion_bd = sesion.get(Transacciones, id)
 
-        if transaccion.id == id:
+    if not transaccion_bd:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La transacción con ID {id} no existe."
+        )
 
-            transaccion_actualizada = Transacciones.model_validate(
-                datos_transaccion.model_dump()
-            )
+    transaccion_dict = datos_transaccion.model_dump(exclude_unset=True)
 
-            transaccion_actualizada.id = id
-            transaccion_actualizada.factura_id = transaccion.factura_id
+    transaccion_bd.sqlmodel_update(transaccion_dict)
 
-            lista_transacciones[i] = transaccion_actualizada
+    sesion.add(transaccion_bd)
+    sesion.commit()
+    sesion.refresh(transaccion_bd)
 
-            return transaccion_actualizada
+    return {
+        "mensaje": "Transacción actualizada correctamente.",
+        "transaccion": transaccion_bd
+    }
 
-    raise HTTPException(
-        status_code=404,
-        detail="Transacción no encontrada"
-    )
 
-# Elimina una transacción de la lista usando su id.
-@router.delete("/transacciones/{id}")
-async def eliminar_transaccion(id: int):
+# Eliminar una transacción
+@router.delete("/{id}")
+async def eliminar_transaccion(
+    id: int,
+    sesion: Sesion_dependencia
+):
 
-    for transaccion in lista_transacciones:
+    transaccion_bd = sesion.get(Transacciones, id)
 
-        if transaccion.id == id:
+    if not transaccion_bd:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La transacción con ID {id} no existe."
+        )
 
-            lista_transacciones.remove(transaccion)
+    sesion.delete(transaccion_bd)
+    sesion.commit()
 
-            return {
-                "mensaje": f"Transacción {id} eliminada correctamente"
-            }
-
-    raise HTTPException(
-        status_code=404,
-        detail="Transacción no encontrada"
-    )
+    return {
+        "mensaje": f"La transacción con ID {id} fue eliminada correctamente."
+    }

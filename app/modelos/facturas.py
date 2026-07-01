@@ -1,26 +1,29 @@
 from pydantic import BaseModel, computed_field
+from sqlmodel import SQLModel, Field , Relationship
+from app.modelos.clientes import Cliente, ClienteLeer
+from app.modelos.transacciones import Transacciones
+from datetime import datetime
 
-from modelos.clientes import Cliente
-from modelos.transacciones import Transacciones
-
-
-class FacturaBase(BaseModel):
+class FacturaBase(SQLModel):
     # atributos
-    fecha: str
-    cliente: Cliente
-    transacciones: list[Transacciones] = []
+    fecha: datetime = Field(default_factory=datetime.now) 
+    #cliente: Cliente
+    #transacciones: list[Transacciones] = []
 
     @computed_field
     @property
     def valor_total(self) -> float:
-        if not self.transacciones:
-            return 0.0
+        total_factura = 0.0
 
-        return sum(
-        t.cantidad * t.vr_unitario
-        for t in self.transacciones
-    )
+        transacciones = getattr(self, "transacciones", None)
 
+        if not transacciones:
+            return total_factura
+
+        for transaccion in transacciones:
+            total_factura += transaccion.vr_unitario * transaccion.cantidad
+
+        return total_factura
 
 class FacturaCrear(FacturaBase):
     pass
@@ -30,5 +33,22 @@ class FacturaEditar(FacturaBase):
     pass
 
 
-class Factura(FacturaBase):
-    id: int | None = None
+class Factura(FacturaBase, table=True) :
+    
+    id: int | None = Field(default=None, primary_key=True)
+    #llave foranea en la db
+    cliente_id: int = Field(default=None, foreign_key="cliente.id")
+    #creacion de relacion virtual con cliente, transacciones no en la bd
+    cliente : Cliente = Relationship(back_populates="factura")
+
+    transacciones: list[Transacciones] = Relationship(back_populates="factura")
+#crear  modelo para mostrar al usuario o el cliente
+
+class Facturaleer(FacturaBase):
+    id: int 
+    cliente: ClienteLeer
+    #se puede agregar a la clase leer pero nop por las buenas practicas
+
+class FacturaLeerCompuesta(Facturaleer):
+    transacciones: list[Transacciones] = []
+    

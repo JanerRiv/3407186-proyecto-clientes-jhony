@@ -5,7 +5,7 @@ from app.modelos.facturas import Factura,FacturaCrear,FacturaEditar
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 
-
+from ..listas import  lista_facturas
 from ..conexion_bd import Sesion_dependencia
 from sqlmodel import select
 
